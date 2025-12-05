@@ -1,0 +1,137 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GitHub Copilot <copilot@example.com>
+Date: Fri, 05 Dec 2025 00:00:00 +0000
+Subject: [PATCH] Make ESLint config stricter and add autofix + commit step in workflow
+
+---
+ .github/workflows/lint.yml    |  45 +++++++++++++++++++++++++++++++++++++++++
+ .eslintrc.json                |  35 +++++++++++++++++++++++++++
+ package.json                  |  20 +++++++++++++++
+ 3 files changed, 100 insertions(+)
+ create mode 100644 .github/workflows/lint.yml
+ create mode 100644 .eslintrc.json
+ create mode 100644 package.json
+diff --git a/.github/workflows/lint.yml b/.github/workflows/lint.yml
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/.github/workflows/lint.yml
+@@ -0,0 +1,45 @@
++name: Lint
++
++on:
++  push:
++    branches:
++      - main
++      - master
++  pull_request:
++    branches:
++      - main
++      - master
++
++# Allow workflow to push changes (autofix commits)
++permissions:
++  contents: write
++
++jobs:
++  eslint:
++    name: ESLint (fix & report)
++    runs-on: ubuntu-latest
++
++    steps:
++      - name: Checkout repository
++        uses: actions/checkout@v4
++        with:
++          fetch-depth: 0
++
++      - name: Use Node.js
++        uses: actions/setup-node@v4
++        with:
++          node-version: 18
++
++      - name: Install dependencies
++        run: npm ci
++
++      - name: Run ESLint --fix
++        run: npm run lint:fix
++
++      - name: Commit and push ESLint fixes
++        uses: EndBug/add-and-commit@v9
++        with:
++          author_name: 'github-actions[bot]'
++          author_email: '41898282+github-actions[bot]@users.noreply.github.com'
++          message: 'chore: apply ESLint --fix'
++          add: '.'
++          allow_empty: false
++
++      - name: Run ESLint (report)
++        run: npm run lint
++
+diff --git a/.eslintrc.json b/.eslintrc.json
+new file mode 100644
+index 0000000..2222222
+--- /dev/null
++++ b/.eslintrc.json
+@@ -0,0 +1,35 @@
++{
++  "env": {
++    "browser": true,
++    "node": true,
++    "es2021": true
++  },
++  "extends": [
++    "eslint:recommended",
++    "airbnb-base"
++  ],
++  "parserOptions": {
++    "ecmaVersion": 12,
++    "sourceType": "module"
++  },
++  "globals": {
++    "$w": "readonly",
++    "wixWindow": "readonly",
++    "wixData": "readonly",
++    "wixUsers": "readonly",
++    "wixLocation": "readonly",
++    "wixGroupsBackend": "readonly"
++  },
++  "rules": {
++    "no-unused-vars": [
++      "error",
++      {
++        "args": "none",
++        "varsIgnorePattern": "^_"
++      }
++    ],
++    "no-console": "warn",
++    "quotes": ["error", "single", { "avoidEscape": true }],
++    "semi": ["error", "always"],
++    "indent": ["error", 2],
++    "eqeqeq": "error",
++    "prefer-const": "error",
++    "comma-dangle": ["error", "only-multiline"]
++  }
++}
+diff --git a/package.json b/package.json
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/package.json
+@@ -0,0 +1,20 @@
++{
++  "name": "wix-registration-system",
++  "version": "0.1.0",
++  "private": true,
++  "scripts": {
++    "lint": "eslint \"**/*.js\" --ext .js",
++    "lint:fix": "eslint --fix \"**/*.js\" --ext .js"
++  },
++  "devDependencies": {
++    "eslint": "^8.50.0",
++    "eslint-config-airbnb-base": "^15.1.0",
++    "eslint-plugin-import": "^2.29.1"
++  }
++}
++
+-- 
+2.40.1
