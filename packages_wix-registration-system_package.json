@@ -1,0 +1,20 @@
+{
+  "name": "@seec/wix-registration-system",
+  "version": "0.1.0",
+  "description": "Skeleton package for Wix registration integration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p ./",
+    "test": "jest",
+    "lint": "eslint ./src --ext .ts"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.9.5",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "eslint": "^8.0.0"
+  }
+}
