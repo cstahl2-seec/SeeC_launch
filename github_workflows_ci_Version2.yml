@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    paths:
+      - 'packages/wix-registration-system/**'
+  pull_request:
+    paths:
+      - 'packages/wix-registration-system/**'
+
+jobs:
+  build-and-test-wix:
+    name: Build & Test wix-registration-system
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build package
+        working-directory: packages/wix-registration-system
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run tests
+        working-directory: packages/wix-registration-system
+        run: npm test
