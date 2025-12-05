@@ -1,0 +1,412 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: GitHub Copilot <copilot@example.com>
+Date: Fri, 05 Dec 2025 00:00:00 +0000
+Subject: [PATCH] Add wix-registration-system skeleton
+
+---
+ README.md                                | 130 ++++++++++++++++++++++++++++++++++++++++++
+ data/Colleges.csv                        |  11 +++++++
+ data/HighSchools.csv                     |  11 +++++++
+ data/Organizations.csv                   |  11 +++++++
+ lightboxes/GroupInvitePopup.js           |  42 +++++++++++
+ src/backend/groups.jsw                   |  69 ++++++++++++++++++++++
+ src/pages/registration-page.js           | 212 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 7 files changed, 486 insertions(+)
+ create mode 100644 README.md
+ create mode 100644 data/Colleges.csv
+ create mode 100644 data/HighSchools.csv
+ create mode 100644 data/Organizations.csv
+ create mode 100644 lightboxes/GroupInvitePopup.js
+ create mode 100644 src/backend/groups.jsw
+ create mode 100644 src/pages/registration-page.js
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000..1111111
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,130 @@
++# Wix Registration System
++
++This repository contains a working registration system for a **Wix + Velo** site.  
++It supports:
++
++- Search-as-you-type dropdowns for U.S. high schools and colleges (via imported CSV data)  
++- Dropdowns / search for sports, fraternities, sororities  
++- Graduation year selection + automatic half‑decade grouping (e.g. “1995–1999”)  
++- Dynamic group creation — and lightbox-based invite link for group joining (instead of auto‑add)  
++
++---
++
++## Files / Structure
++
++- `data/HighSchools.csv` — list of high schools (name, city, state, etc.)  
++- `data/Colleges.csv` — list of colleges/universities  
++- `data/Organizations.csv` — optional; for fraternities, sororities, sports, clubs, etc.  
++- `src/backend/groups.jsw` — backend logic: find-or-create group, generate invite link  
++- `src/pages/registration-page.js` — front-end registration page logic (form, dropdowns, registration, invite popup)  
++- `lightboxes/GroupInvitePopup.js` — lightbox code to show the invite link after registration  
++
++---
++
++## Setup Instructions
++
++1. Copy this file structure and files into a new repo or into your Wix site's code (Backend and Page code sections).
++2. In Wix Content Manager → import **`HighSchools.csv`**, **`Colleges.csv`**, and optionally **`Organizations.csv`** into CMS collections.
++3. Ensure collection names in Wix match those used in code: `HighSchools`, `Colleges`, `Organizations`, `Members`, `TownGroups`.
++4. Add a registration page in Wix, paste front‑end code from `src/pages/registration-page.js`, and wire up form elements (IDs must match those referenced in code).
++5. Add the lightbox named exactly `GroupInvitePopup`, with element IDs matching those in the lightbox code.
++6. Publish the site (or use Git integration) to apply changes.
++
++---
++
++## Customization
++
++- Update `ALL_SPORTS` array in `registration-page.js` to add/remove sports.  
++- Adjust graduation year range if needed.  
++- Customize form layout, styling, and required/optional fields.  
++- Modify group‑key logic in `registration-page.js` to group by any criteria (e.g. school + half‑decade, sport + region, etc.).  
++
++Enjoy! 🎉
++
+diff --git a/data/Colleges.csv b/data/Colleges.csv
+new file mode 100644
+index 0000000..2222222
+--- /dev/null
++++ b/data/Colleges.csv
+@@ -0,0 +1,11 @@
++collegeName,town,state,fullAddress,ipedsId
++Harvard University,Cambridge,MA,Massachusetts Hall,166027
++University of Florida,Gainesville,FL,Tigert Hall,134130
++UCLA,Los Angeles,CA,405 Hilgard Ave,110662
++Ohio State University,Columbus,OH,281 W Lane Ave,204796
++Duke University,Durham,NC,210 Science Dr,198419
++Penn State University,State College,PA,Old Main,214777
++UC Berkeley,Berkeley,CA,110 Sproul Hall,110635
++University of Texas,Austin,TX,1 University Station,228778
++NYU,New York City,NY,70 Washington Square,193900
++Stanford University,Stanford,CA,450 Serra Mall,243744
+diff --git a/data/HighSchools.csv b/data/HighSchools.csv
+new file mode 100644
+index 0000000..3333333
+--- /dev/null
++++ b/data/HighSchools.csv
+@@ -0,0 +1,11 @@
++schoolName,town,state,fullAddress,ncesId
++Lincoln High School,Los Angeles,CA,123 Main St,062130013001
++Madison High School,Portland,OR,222 Pine Rd,410000400001
++Roosevelt High School,Seattle,WA,981 Elm St,530000200120
++Jefferson High School,Denver,CO,1200 Logan St,080003001287
++Springfield High School,Springfield,IL,1500 State St,170002834900
++North Ridge High School,Ridgewood,NJ,200 Oak Ave,340120980234
++South Bay High School,San Diego,CA,552 Ocean Blvd,060982341000
++Valley High School,Las Vegas,NV,3300 Desert Inn,320003455003
++Riverbend High School,Fredericksburg,VA,100 River Rd,510007882100
++Central High School,Philadelphia,PA,111 Broad St,420013882230
+diff --git a/data/Organizations.csv b/data/Organizations.csv
+new file mode 100644
+index 0000000..4444444
+--- /dev/null
++++ b/data/Organizations.csv
+@@ -0,0 +1,11 @@
++name,type,town,state
++Alpha Phi,fraternity,Various,USA
++Sigma Chi,fraternity,Various,USA
++Delta Gamma,sorority,Various,USA
++Kappa Kappa Gamma,sorority,Various,USA
++Basketball,sport,,
++Swimming,sport,,
++Track and Field,sport,,
++Soccer,sport,,
++Volleyball,sport,,
+diff --git a/lightboxes/GroupInvitePopup.js b/lightboxes/GroupInvitePopup.js
+new file mode 100644
+index 0000000..5555555
+--- /dev/null
++++ b/lightboxes/GroupInvitePopup.js
+@@ -0,0 +1,42 @@
++import wixWindow from 'wix-window';
++import wixLocation from 'wix-location';
++
++$w.onReady(() => {
++  const data = wixWindow.lightbox.getContext() || {};
++  const groupName = data.groupName || 'Your Group';
++  const inviteUrl = data.inviteUrl || '';
++
++  if ($w('#groupNameText')) {
++    $w('#groupNameText').text = `You've been invited to join: ${groupName}`;
++  }
++  if ($w('#joinButton')) {
++    $w('#joinButton').onClick(() => {
++      if (inviteUrl) {
++        wixLocation.to(inviteUrl);
++      } else {
++        // fallback behavior
++        wixLocation.to('/');
++      }
++    });
++  }
++
++  if ($w('#inviteLink')) {
++    $w('#inviteLink').link = inviteUrl;
++    $w('#inviteLink').text = inviteUrl ? 'Open invite link' : 'No invite link available';
++  }
++});
++
+diff --git a/src/backend/groups.jsw b/src/backend/groups.jsw
+new file mode 100644
+index 0000000..6666666
+--- /dev/null
++++ b/src/backend/groups.jsw
+@@ -0,0 +1,69 @@
++import wixData from 'wix-data';
++import wixGroupsBackend from 'wix-groups-backend';
++
++/**
++ * Create a TownGroups record and a Wix Group with an invite link.
++ * Returns { groupName, inviteUrl, groupId }
++ */
++async function createGroup(groupName) {
++  const newGroup = await wixGroupsBackend.createGroup({
++    name: groupName,
++    description: `Group for ${groupName}`,
++    privacyStatus: "PUBLIC"
++  });
++
++  const invite = await wixGroupsBackend.createInvite(newGroup._id);
++
++  await wixData.insert("TownGroups", {
++    groupName,
++    groupId: newGroup._id,
++    inviteUrl: invite.url
++  });
++
++  return {
++    groupName,
++    inviteUrl: invite.url,
++    groupId: newGroup._id
++  };
++}
++
++/**
++ * Find an existing TownGroups record by groupName or create one
++ */
++async function getOrCreate(groupName) {
++  const r = await wixData.query("TownGroups")
++    .eq("groupName", groupName)
++    .find();
++
++  if (r.items.length > 0) return r.items[0];
++  return await createGroup(groupName);
++}
++
++/**
++ * Public backend function to handle user -> group invite/creation logic.
++ * Called from page code after a user registers.
++ */
++export async function handleUserGroupInvite(userId, profile) {
++  // profile is expected to include groupKey (e.g. "1995-1999") and other metadata
++  const groupKey = profile.groupKey || profile.groupName || "default";
++  const out = await getOrCreate(groupKey);
++  return out;
++}
++
+diff --git a/src/pages/registration-page.js b/src/pages/registration-page.js
+new file mode 100644
+index 0000000..7777777
+--- /dev/null
++++ b/src/pages/registration-page.js
+@@ -0,0 +1,212 @@
++import wixUsers from 'wix-users';
++import wixData from 'wix-data';
++import wixLocation from 'wix-location';
++import wixWindow from 'wix-window';
++import { handleUserGroupInvite } from 'backend/groups';
++
++const ALL_SPORTS = [
++  "Baseball","Basketball","Soccer","Football","Hockey","Tennis",
++  "Track and Field","Cross Country","Volleyball","Swimming",
++  "Wrestling","Golf","Bowling","Skiing","Snowboarding","Gymnastics",
++  "Boxing","Martial Arts","Karate","Taekwondo","Judo","MMA",
++  "Cycling","Rowing","Canoeing","Kayaking","Sailing","Surfing",
++  "Climbing","Skateboarding","Badminton","Table Tennis","Lacrosse",
++  "Rugby","Cricket","Water Polo","Softball","Cheerleading","Dance",
++  "Fencing","Powerlifting","Weightlifting","Bodybuilding",
++  "Ultimate Frisbee","Pickleball"
++];
++
++function halfDecadeGroup(yearStr) {
++  const y = Number(yearStr);
++  if (!y) return null;
++  const base = y - (y % 5);
++  const top = base + 4;
++  return `${base}-${top}`;
++}
++
++$w.onReady(function () {
++  // High School search input -> populate ddHighSchool options
++  $w('#ddHighSchoolSearch').onInput(async () => {
++    const term = $w('#ddHighSchoolSearch').value || "";
++    if (!term || term.length < 2) {
++      $w('#ddHighSchool').options = [];
++      return;
++    }
++    const results = await wixData.query("HighSchools")
++      .contains("schoolName", term)
++      .limit(50)
++      .ascending("schoolName")
++      .find();
++    $w('#ddHighSchool').options = results.items.map(item => ({
++      label: `${item.schoolName} (${item.state})`,
++      value: item._id
++    }));
++  });
++  $w('#ddHighSchool').onChange(async () => {
++    const val = $w('#ddHighSchool').value;
++    if (!val) return;
++    const rec = await wixData.get("HighSchools", val);
++    $w('#hsTown').value = rec.town;
++  });
++
++  // College search
++  $w('#ddCollegeSearch').onInput(async () => {
++    const term = $w('#ddCollegeSearch').value || "";
++    if (!term || term.length < 2) {
++      $w('#ddCollege').options = [];
++      return;
++    }
++    const results = await wixData.query("Colleges")
++      .contains("collegeName", term)
++      .limit(50)
++      .ascending("collegeName")
++      .find();
++    $w('#ddCollege').options = results.items.map(item => ({
++      label: `${item.collegeName} (${item.state})`,
++      value: item._id
++    }));
++  });
++  $w('#ddCollege').onChange(async () => {
++    const val = $w('#ddCollege').value;
++    if (!val) return;
++    const rec = await wixData.get("Colleges", val);
++    $w('#collegeTown').value = rec.town;
++  });
++
++  // Sport search + populate dropdown
++  $w('#sportSearch').onInput(() => {
++    const term = ($w('#sportSearch').value || "").toLowerCase();
++    const filtered = ALL_SPORTS.filter(s => s.toLowerCase().includes(term));
++    $w('#sportDropdown').options = filtered.map(s => ({ label: s, value: s }));
++  });
++  $w('#sportDropdown').options = ALL_SPORTS.map(s => ({ label: s, value: s }));
++
++  // Graduation years
++  function graduationYears(start = 1960, end = 2035) {
++    const arr = [];
++    for (let y = end; y >= start; y--) {
++      arr.push({ label: `${y}`, value: `${y}` });
++    }
++    return arr;
++  }
++  $w('#hsGradYear').options = graduationYears();
++  $w('#collegeGradYear').options = graduationYears();
++});
++
++/**
++ * Handler for the register button click (connect this function to the button's onClick)
++ */
++export async function registerButton_click(event) {
++  event.preventDefault && event.preventDefault();
++
++  const firstName = $w('#firstName').value;
++  const lastName = $w('#lastName').value;
++  const email = $w('#email').value;
++  const password = $w('#password').value;
++  const currentTown = $w('#currentTown').value;
++  const hometown = $w('#hometown').value;
++
++  const normalizedTown = (currentTown || hometown || "")
++    .trim()
++    .toLowerCase()
++    .replace(/[^a-z0-9\s]/gi, "")
++    .replace(/\s+/g, " ")
++    .trim();
++
++  try {
++    // Register the user
++    const registrationResult = await wixUsers.register(email, password);
++    // registrationResult.user may not always be present depending on settings; wixUsers.register typically returns a promise
++    // If registration requires confirmation, you may need to handle that flow accordingly.
++
++    // Determine decade groups
++    const hsDecade = halfDecadeGroup($w('#hsGradYear').value);
++    const collegeDecade = halfDecadeGroup($w('#collegeGradYear').value);
++
++    // Insert into Members collection
++    await wixData.insert("Members", {
++      firstName,
++      lastName,
++      email,
++      currentTown,
++      hometown,
++      normalizedTown,
++
++      highSchool: $w('#ddHighSchool').value,
++      highSchoolTown: $w('#hsTown').value,
++      hsGradYear: $w('#hsGradYear').value,
++      hsGradHalfDecade: hsDecade,
++
++      college: $w('#ddCollege').value,
++      collegeTown: $w('#collegeTown').value,
++      collegeGradYear: $w('#collegeGradYear').value,
++      collegeGradHalfDecade: collegeDecade,
++
++      fraternity: $w('#ddFraternity').value,
++      fraternityTown: $w('#fraternityTown').value,
++
++      sorority: $w('#ddSorority').value,
++      sororityTown: $w('#sororityTown').value,
++
++      sport: $w('#sportDropdown').value,
++      sportTown: $w('#sportTown').value,
++
++      wixUserId: registrationResult.user ? registrationResult.user.id : null
++    });
++
++    // Determine the group key (example uses HS half-decade)
++    const groupKey = hsDecade || collegeDecade || normalizedTown || "default";
++
++    // Call backend to get or create group + invite
++    const invite = await handleUserGroupInvite(registrationResult.user ? registrationResult.user.id : null, {
++      firstName,
++      lastName,
++      email,
++      groupKey
++    });
++
++    // Open lightbox with invite info
++    wixWindow.openLightbox("GroupInvitePopup", {
++      groupName: invite.groupName,
++      inviteUrl: invite.inviteUrl || invite.inviteUrl
++    });
++
++    // Optionally sign the user in (some setups auto-login after register)
++    try {
++      await wixUsers.login(email, password);
++      // After login, you might redirect:
++      // wixLocation.to('/welcome');
++    } catch (loginErr) {
++      // Login may fail if email verification is required. That's ok — the invite lightbox still shows.
++      console.warn('Login after register failed (may require email confirmation):', loginErr);
++    }
++  } catch (err) {
++    console.error("Registration error:", err);
++    // Show an error message in the UI (wire up an element to show errors)
++    if ($w('#registerError')) {
++      $w('#registerError').text = (err && err.message) ? err.message : 'Registration failed';
++      $w('#registerError').show();
++    }
++  }
++}
++
+-- 
+2.40.1
